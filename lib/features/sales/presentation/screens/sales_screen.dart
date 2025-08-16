@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
+import 'package:hisab/core/db/entry.dart';
 import '../widgets/sales_header.dart';
 import '../widgets/sales_list_item.dart';
 import '../widgets/sales_empty.dart';

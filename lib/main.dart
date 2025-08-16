@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'models/stat_info.dart';
+import 'core/db/stat_info.dart';
 import 'features/members/domain/entities/member.dart';
-import 'models/entry.dart';
+import 'core/db/entry.dart';
 import 'features/notes/domain/entities/note.dart';
 import 'core/providers/app_state.dart';
 import 'features/dashboard/presentation/screens/dashboard_screen.dart';

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
+import 'package:hisab/core/db/entry.dart';
+import 'package:hisab/features/members/domain/entities/member.dart';
 import '../../../../core/providers/app_state.dart';
-import '../../../../ui/widgets/forms.dart';
+import '../../../../core/common/forms.dart';
 
 class _StatCard extends StatelessWidget {
   final String title;

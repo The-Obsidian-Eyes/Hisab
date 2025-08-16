@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/providers/app_state.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/db/entry.dart';
+import 'package:hisab/core/db/entry_factory.dart';
 import '../widgets/member_tile.dart';
 import 'profit_distribution_screen.dart';
 
@@ -64,57 +65,12 @@ class MembersScreen extends StatelessWidget {
     );
 
     if (result == true && context.mounted) {
+      final appState = context.read<AppState>();
       try {
-        final appState = context.read<AppState>();
-
-        // 1. Store current effective equities
-        final memberEquities =
-            appState.members
-                .map(
-                  (member) => MapEntry(
-                    member.id,
-                    appState.memberEffectiveEquity(member.id),
-                  ),
-                )
-                .toList();
-
-        // 2. Delete non-equity, non-asset entries
-        final entriesToDelete =
-            box.values
-                .where((e) => e.type != 'equity' && e.type != 'asset')
-                .map((e) => e.key)
-                .whereType<dynamic>()
-                .toList();
-        await box.deleteAll(entriesToDelete);
-
-        // Delete old equity entries
-        final oldEquityEntries =
-            box.values
-                .where((e) => e.type == 'equity')
-                .map((e) => e.key)
-                .whereType<dynamic>()
-                .toList();
-        await box.deleteAll(oldEquityEntries);
-
-        // 3. Update base equities and create new equity entries
-        for (final memberEquity in memberEquities) {
-          // Update member's base equity
-          await appState.updateMemberEquity(
-            memberEquity.key,
-            memberEquity.value,
-          );
-
-          // Create a new equity entry for the final amount
-          final entry = Entry(
-            id: DateTime.now().microsecondsSinceEpoch.toString(),
-            date: DateTime.now(),
-            amount: memberEquity.value,
-            type: 'equity',
-            memberId: memberEquity.key,
-            notes: 'Season reset: Base equity adjusted',
-          );
-          await box.put(entry.id, entry);
-        }
+        // Delegate reset logic to AppState to ensure assets are preserved
+        // and the aggregated cash adjustment is created so that
+        // cashBalance == totalBaseEquity - totalAssets after reset.
+        await appState.resetSeason();
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

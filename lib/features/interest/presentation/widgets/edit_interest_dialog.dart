@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
+import 'package:hisab/core/db/entry.dart';
 
 Future<void> showEditInterest(BuildContext context, Entry interest) async {
   final notes = TextEditingController(text: interest.notes);

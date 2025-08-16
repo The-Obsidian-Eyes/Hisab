@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
+import 'package:hisab/core/db/entry.dart';
 // ...existing code...
 import '../widgets/purchase_header.dart';
 import '../widgets/purchase_list_item.dart';

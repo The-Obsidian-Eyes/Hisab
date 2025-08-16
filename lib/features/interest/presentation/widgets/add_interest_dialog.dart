@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
 
 Future<void> showAddInterest(BuildContext context) async {
   final notes = TextEditingController();

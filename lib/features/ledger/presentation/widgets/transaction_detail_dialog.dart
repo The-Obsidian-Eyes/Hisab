@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/common/models.dart';
+import 'package:hisab/core/db/entry.dart';
 import 'ledger_helpers.dart';
 import 'detail_row.dart';
 

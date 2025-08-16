@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/db/entry.dart';
+// cleaned up imports - use core entry model
 
 class AssetListItem extends StatelessWidget {
   final Entry asset;

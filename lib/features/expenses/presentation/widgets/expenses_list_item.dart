@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../models/models.dart';
+import 'package:hisab/core/db/entry.dart';
 
 class ExpensesListItem extends StatelessWidget {
   final Entry expense;

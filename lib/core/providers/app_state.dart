@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/members/domain/entities/member.dart';
-import '../../models/entry.dart';
+import '../db/entry.dart';
 
 const entryType = {
   'sale',
@@ -220,21 +220,74 @@ class AppState extends ChangeNotifier {
       .fold(0.0, (p, e) => p + e.amount);
 
   Future<void> resetSeason() async {
-    // For each member, set their base equity to their effective equity
+    // 1. Compute effective equities and update members' base equity
     for (final member in members) {
       final effectiveEquity = memberEffectiveEquity(member.id);
       await updateMemberEquity(member.id, effectiveEquity);
     }
 
-    // Clear all non-equity entries
-    final entriesToDelete =
-        _entriesBox.values
-            .where((e) => e.type != 'equity')
-            .map((e) => e.id)
+    // 2. Remove all non-equity, non-asset entries by Hive key. We must delete by
+    // Hive key (box key) because some places call box.add(entry) which assigns
+    // an integer key different from entry.id. Using the Hive key ensures all
+    // matching entries are removed regardless of how they were added.
+    final entriesMap = _entriesBox.toMap(); // Map<dynamic, Entry>
+
+    final keysToDelete =
+        entriesMap.entries
+            .where(
+              (kv) => kv.value.type != 'equity' && kv.value.type != 'asset',
+            )
+            .map((kv) => kv.key)
             .toList();
 
-    for (final id in entriesToDelete) {
-      await _entriesBox.delete(id);
+    if (keysToDelete.isNotEmpty) {
+      await _entriesBox.deleteAll(keysToDelete);
+    }
+
+    // 3. Remove old equity entries (we'll recreate them below). Delete by Hive key.
+    final entriesMapAfter = _entriesBox.toMap();
+    final oldEquityKeys =
+        entriesMapAfter.entries
+            .where((kv) => kv.value.type == 'equity')
+            .map((kv) => kv.key)
+            .toList();
+    if (oldEquityKeys.isNotEmpty) {
+      await _entriesBox.deleteAll(oldEquityKeys);
+    }
+
+    // 4. Create new equity entries reflecting the updated base equities.
+    // Use _entriesBox.put(entry.id, entry) directly instead of addEntry() to
+    // avoid addEntry's side-effect which updates member base equity again when
+    // it sees type == 'equity'. We already set base equity above.
+    for (final member in members) {
+      final base = memberBaseEquity(member.id);
+      final entry = Entry(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        date: DateTime.now(),
+        amount: base,
+        type: 'equity',
+        memberId: member.id,
+        notes: 'Season reset: Base equity adjusted',
+      );
+      await _entriesBox.put(entry.id, entry);
+    }
+
+    // 5. After clearing non-asset entries, ensure cash balance aligns with
+    // desired opening cash: desiredCashSum = -totalAssets so that
+    // cashBalance == totalBaseEquity + sum(cash) == totalBaseEquity - totalAssets.
+    final totalAssets = _sum('asset');
+    final desiredCashSum = -totalAssets;
+
+    if (desiredCashSum != 0) {
+      final cashEntry = Entry(
+        id: 'season_cash_${DateTime.now().microsecondsSinceEpoch}',
+        date: DateTime.now(),
+        amount: desiredCashSum,
+        type: 'cash',
+        notes: 'Season reset cash position',
+      );
+      // Put directly to avoid touching member base equity.
+      await _entriesBox.put(cashEntry.id, cashEntry);
     }
 
     notifyListeners();

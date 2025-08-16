@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../../models/models.dart';
-import '../../../../ui/widgets/forms.dart';
+import 'package:hisab/core/common/models.dart';
+import '../../../../core/common/forms.dart';
 
 Future<void> showAddSale(BuildContext context) async {
   final notes = TextEditingController();
