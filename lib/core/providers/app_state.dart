@@ -113,9 +113,20 @@ class AppState extends ChangeNotifier {
 
   /// Gets member's equity percentage including profits/losses
   double memberEquityPercentage(String memberId) {
-    final effectiveTotal = totalEffectiveEquity;
-    if (effectiveTotal <= 0) return 0;
-    return (memberEffectiveEquity(memberId) / effectiveTotal) * 100;
+    // The share should be computed relative to the sum of all members'
+    // effective equities (i.e. each member's effective equity divided by
+    // the total of effective equities). Using totalEffectiveEquity
+    // (which was baseEquity + totalProfitLoss) is incorrect when there are
+    // expenses because the sum of memberEffectiveEquity values equals
+    // totalBaseEquity - totalExpenses + totalProfitLoss, not
+    // totalBaseEquity + totalProfitLoss. Compute the actual total of
+    // member effective equities to ensure percentages sum to 100%.
+    final effectiveSum = members.fold<double>(
+      0.0,
+      (sum, m) => sum + memberEffectiveEquity(m.id),
+    );
+    if (effectiveSum <= 0) return 0;
+    return (memberEffectiveEquity(memberId) / effectiveSum) * 100;
   }
 
   /// Gets the total effective equity including all profits/losses
@@ -220,10 +231,18 @@ class AppState extends ChangeNotifier {
       .fold(0.0, (p, e) => p + e.amount);
 
   Future<void> resetSeason() async {
-    // 1. Compute effective equities and update members' base equity
-    for (final member in members) {
-      final effectiveEquity = memberEffectiveEquity(member.id);
-      await updateMemberEquity(member.id, effectiveEquity);
+    // 1. Compute effective equities for all members first (snapshot).
+    //    This prevents sequential updates from changing the base total used
+    //    in later calculations and ensures members' percentage shares stay
+    //    the same after reset.
+    final memberEquities =
+        members
+            .map((m) => MapEntry(m.id, memberEffectiveEquity(m.id)))
+            .toList();
+
+    // 2. Update member base equities using the snapshot
+    for (final me in memberEquities) {
+      await updateMemberEquity(me.key, me.value);
     }
 
     // 2. Remove all non-equity, non-asset entries by Hive key. We must delete by
@@ -256,17 +275,14 @@ class AppState extends ChangeNotifier {
     }
 
     // 4. Create new equity entries reflecting the updated base equities.
-    // Use _entriesBox.put(entry.id, entry) directly instead of addEntry() to
-    // avoid addEntry's side-effect which updates member base equity again when
-    // it sees type == 'equity'. We already set base equity above.
-    for (final member in members) {
-      final base = memberBaseEquity(member.id);
+    // Use the snapshot values to ensure consistency.
+    for (final me in memberEquities) {
       final entry = Entry(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         date: DateTime.now(),
-        amount: base,
+        amount: me.value,
         type: 'equity',
-        memberId: member.id,
+        memberId: me.key,
         notes: 'Season reset: Base equity adjusted',
       );
       await _entriesBox.put(entry.id, entry);
