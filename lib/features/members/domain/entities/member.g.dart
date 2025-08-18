@@ -20,7 +20,7 @@ class MemberAdapter extends TypeAdapter<Member> {
       id: fields[0] as String,
       name: fields[1] as String,
       phone: fields[2] as String,
-      baseEquity: (fields[3] as double?) ?? 0.0,
+      baseEquity: fields[3] as double,
     );
   }
 
